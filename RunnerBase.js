@@ -1,7 +1,6 @@
 const projectName = "runcode.app";
 const baseFolder = `/home/xinyi/${projectName}`;
 const inputFolderHost = `${baseFolder}/input`;
-const inputFolderContainer = `/${projectName}/input`;
 const TimeoutMs = 5000;
 const dockerPrefix = 'docker run --rm -m 64M --memory-swap 64M';
 const dockerContainerKill = "docker container kill";
@@ -31,8 +30,12 @@ class Runner {
   static async dockerRunAndCleanup(id, cmd) {
     return new Promise(((resolve, reject) => {
       exec(cmd, {timeout: this.TimeoutMs, killSignal: 'SIGKILL'}, (err, stdout, stderr) => {
-        if (stderr)
-          reject(stderr);
+        if (stderr) {
+          if (stderr.startsWith("docker: Error response from daemon: OCI runtime"))
+            reject("Out of Memory 64MB");
+          else
+            reject(stderr);
+        }
         if (err) {
           if (err.killed) { // timeout
             exec(`${this.dockerContainerKill} ${id}`);   // kill the container
@@ -43,7 +46,6 @@ class Runner {
           resolve(stdout);
       });
     }))
-
   }
 }
 
